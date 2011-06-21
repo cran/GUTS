@@ -16,43 +16,42 @@ using namespace std;
 /*
  * Declaration of sample functions to invoke in doSample.
  */
-std::vector<double> sampleNormal     ( int N, double mean, double sigma );
-std::vector<double> sampleLognormal  ( int N, double mean, double sigma );
+vector<double> sampleLognormal ( int N, double mean, double sigma );
 
 /*
  * The method.
  */
 bool GUTS::doSample()
 {
-    /*
-     * Choose distribution and sample.
-     * Currently only normal + lognorm, more future work.
-     */
-    if ( mdist == "normal" )
+    if ( mustSample == 0 )
     {
-        if ( zPars.at(1) <= 0 )
-            return 0;
-        else
-            mz = sampleNormal( mN, zPars.at(0), zPars.at(1) );
+        /*
+         * We do not know abt error in sample
+         */
+        return 1;
     }
     else if ( mdist == "lognormal" )
     {
-        if ( zPars.at(0) <= 0 || zPars.at(1) <= 0 )
+        if ( zPars.at(0) <= 0.0 || zPars.at(1) <= 0.0 )
+        {
+            gMsg.at(6) = 0.0; // error in sample
             return 0;
+        }
         else
+        {
             mz = sampleLognormal( mN, zPars.at(0), zPars.at(1) );
+            sort( mz.begin(), mz.end() );
+            gMsg.at(6) = 1.0;
+            return 1;
+        }
     }
     else
     {
-        mz.assign( mN, 0.0);
+        mz.assign( mN, 1.0);
+        gMsg.at(6) = 0.0;
         return 0;
     }
 
-    /*
-     * Always sort!
-     */
-    sort( mz.begin(), mz.end() );
-    return 1;
 } // end GUTS::doSample()
 
 /*
@@ -65,41 +64,28 @@ using namespace boost;
 // that is seeded once with #seconds since 1970
 static mt19937 rng(static_cast<unsigned> (std::time(0)));
 
-std::vector<double> sampleNormal (int N, double mean, double sigma)
+std::vector<double> sampleLognormal (int N, double mean, double sigma)
 {
-//    using namespace boost;
+    using namespace boost;
 
     /*
      * temporary vector
      */
-    vector<double> ret;
+    std::vector<double> ret;
 
     // Create a Mersenne twister random number generator
     // that is seeded once with #seconds since 1970
 //    static mt19937 rng(static_cast<unsigned> (std::time(0)));
 
     // select Gaussian probability distribution
-    normal_distribution<double> norm_dist(mean, sigma);
+    lognormal_distribution<double> lognorm_dist(mean, sigma);
 
     // bind random number generator to distribution, forming a function
-    variate_generator<mt19937&, normal_distribution<double> >
-        normal_sampler(rng, norm_dist);
-    
-    // sample from the distribution
-    for ( unsigned int i = 0; i < N; ++i )
-    {
-        ret.push_back( normal_sampler() );
-    }
-    return ret;
-}
-
-std::vector<double> sampleLognormal (int N, double mean, double sigma)
-{
-    vector<double> ret;
-    lognormal_distribution<double> lognorm_dist(mean, sigma);
     variate_generator<mt19937&, lognormal_distribution<double> >
         lognormal_sampler(rng, lognorm_dist);
-    for ( unsigned int i = 0; i < N; ++i )
+
+    // sample from the distribution
+    for ( int i = 0; i < N; ++i )
     {
         ret.push_back( lognormal_sampler() );
     }

@@ -11,30 +11,17 @@
 #ifndef guts_h
 #define guts_h guts_h
 
-/*
- * STL structures.
- */
 #include <vector>
 #include <valarray>
 #include <numeric>
 #include <algorithm>
 #include <string>
-
-/*
- * More useful boost structures
- */
-#include <boost/assign/std/vector.hpp> // for 'operator+=()'
-#include <boost/assert.hpp>; // BOOST_ASSERT_MSG();
-
-/*
- * We need the boost library to create samples from given distributions.
- */
+#include <map>
+#include <ctime> // for rng
 #include <boost/random.hpp>
 #include <boost/math/distributions.hpp>
-#include <ctime> // for rng
 
 using namespace std;
-using namespace boost::assign; // bring 'operator+=()' into scope
 
 /** Class GUTS
  * GUTS objects represent survival models for which the logarithm
@@ -50,20 +37,18 @@ public:
     /** Time series vector of concentrations.
      * @param   C   Vector of concentrations.
      * @param   Ct  Vector of time points of concentrations (must start at 0).
-     * @return  True/false where false indicates an error.
      *
      * Must be of equal length. Set mC and mCt.
      */
-    bool setConcentrations(const vector<double>& C, const vector<double>& Ct);
+    void setConcentrations(const vector<double>& C, const vector<double>& Ct);
 
     /** Time series vector of survivors.
      * @param   y   Vector of survivors.
      * @param   yt  Vector of time points of survivors (must start at 0).
-     * @return  True/false where false indicates an error.
      *
      * Must be of equal length. Set y/my and yt/myt, appends value 0 to my.
      */
-    bool setSurvivors(const vector<int>& y, const vector<double>& yt);
+    void setSurvivors(const vector<int>& y, const vector<double>& yt);
 
     /** Parameter vector of the object.
      * @param   par     Vector of numerics (> 2).
@@ -73,7 +58,7 @@ public:
      * of the loglikelihood, the latter are used for the construction of sample
      * vector z. Set par/mpar.
      */
-    bool setParameters(const vector<double>& par);
+    void setParameters(const vector<double>& par);
 
     /** Number of grid points on the time-axis.
      * @method  setTimeGridPoints
@@ -83,19 +68,19 @@ public:
      * Indicates the grid points of the time axis used for the integration.
      * Set M/mM.
      */
-    bool setTimeGridPoints(const int& M);
+    void setTimeGridPoints(const int& M);
 
     /** The (name of the) distribution to sample from.
      * @param:  dist    character (name)
      * @return: True/false where false indicates an error.
      */
-    bool setDistribution( const string dist );
+    void setDistribution( const string dist );
 
     /** Size of the sample.
      * @param   N   Positive non-zero integer.
      * @return  True/false where false indicates an error.
      */
-    bool setSampleLength(const int& N);
+    void setSampleLength(const int& N);
 
     /** Sample vector.
      * @param   z    Vector of non-negative ordered numerics.
@@ -105,7 +90,7 @@ public:
      * Public method takes a vector of non-negative numerics. The vector must
      * be in ascending order. Sets mz and hbyUser.
      */
-    bool setSample( const vector<double> &z);
+    void setSample( const vector<double> &z);
 
     /** Calculate loglikelihood.
      * @return  Numeric, the loglikelihood.
@@ -121,6 +106,19 @@ public:
      * for debugging only
      */
     void showObject();
+    
+    /*
+     * Getters.
+     */
+    vector<double> getC() { return mC; }
+    vector<double> getCt() { return mCt; }
+    vector<int> gety() { return my; }
+    vector<double> getyt() { return myt; }
+    vector<double> getpar() { return mpar; }
+    int getM() { return mM; }
+    string getdist() { return mdist; }
+    int getN() { return mN; }
+    vector<double> getz() { return mz; }
 
 private:
 
@@ -164,8 +162,10 @@ private:
     /*
      * Helpers.
      */
-    bool sampleByUser;      // Sample provided by user?
+    bool mustSample;        // Do we need to sample?
     vector<double> zPars;   // Parameters for sampling
+    vector<double> gMsg;
+    //std::map<std::string, int> gError;
 };
 
 #endif

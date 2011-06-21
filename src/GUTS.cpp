@@ -12,6 +12,8 @@
 #include "GUTS.h"
 #endif
 
+using namespace std;
+
 /** GUTS class constructor.
  *
  * Defaults do not represent a working example, they
@@ -24,11 +26,11 @@ GUTS::GUTS()
      */
     mC.assign( 10, 1.0 );
     mCt.assign( 10, 1.0 );
-    my.assign( 11, 0 ); // appended field with 0
+    my.assign( 11, 0 );         // appended field with 0
     myt.assign( 10, 1.0 );
     mpar.assign( 5, 1.0 );
     mM = 10000;
-    mdist = "lognormal";
+    mdist = "none";
     mN = 10000;
     mz.assign( 10000, 1.0 );
 
@@ -43,14 +45,14 @@ GUTS::GUTS()
     /*
      * dtau is updated in setSurvivors(), AND setTimeGripPoints()
      */
-    dtau = ( myt.back() - myt.front() ) / mM;
+    dtau = 0.1;
     
     /*
      * Helpers.
      */
-    sampleByUser = 0; // default: false, do sample
-    zPars.assign( 10, 1.0 ); // long enough
-
+    mustSample = 0;             // default: false, do not sample
+    zPars.assign( 10, 1.0 );    // long enough
+    gMsg.assign( 7, 0.0 );
 } // end GUTS::GUTS()
 
 /*
@@ -69,12 +71,13 @@ GUTS::~GUTS()
     ee.clear();
     ff.clear();
     zPars.clear();
+    gMsg.clear();
 } // end GUTS::~GUTS()
 
 /*
- * Setter of mC and mCt
+ * mC and mCt
  */
-bool GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct)
+void GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct)
 {
     // Minimum length, same size, first Ct = 0
     if (C.size() > 2 && C.size() == Ct.size() && Ct.at(0) == 0.0)
@@ -83,17 +86,20 @@ bool GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct)
         for ( unsigned int i = 0; i < (Ct.size() - 1); ++i)
         {
             if ( (Ct.at(i+1) - Ct.at(i)) <= 0 )
-                return 0;
+            {
+                gMsg.at(0) = 0.0;
+                return;
+            }
         }
 
         // Okay, lets assign
         mC = C;
         mCt = Ct;
-        return 1;
+        gMsg.at(0) = 1.0;
     }
     else
     {
-        return 0;
+        gMsg.at(0) = 0.0;
     }
 } // end GUTS::setConcentrations()
 
@@ -101,23 +107,35 @@ bool GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct)
  * Setter for my and myt. my needs a 0 appended. S.back() must be 0.0.
  * S and dtau are also set.
  */
-bool GUTS::setSurvivors(const vector<int>& y, const vector<double>& yt)
+void GUTS::setSurvivors(const vector<int>& y, const vector<double>& yt)
 {
     // Minimum length, same size, first yt = 0, last > first
-    if (y.size() > 2 && y.size() == yt.size()
-        && yt.at(0) == 0.0 && yt.back() > yt.front() )
+    if (y.size() > 2 && y.size() == yt.size() && yt.at(0) == 0.0)
     {
+        // No yt.at(k+1) - yt.at(k) <= 0!
+        for ( unsigned int i = 0; i < (yt.size() - 1); ++i)
+        {
+            if ( (yt.at(i+1) - yt.at(i)) <= 0 )
+            {
+                gMsg.at(1) = 0.0;
+                return;
+            }
+        }
+
         my = y;
-        myt = yt;
         my.push_back( 0 ); // my[last + 1] is always 0
+        myt = yt;
+
         S.resize( my.size() );
         S.back() = 0.0;
+
         dtau = ( myt.back() - myt.front() ) / mM;
-        return 1;
+
+        gMsg.at(1) = 1.0;
     }
     else
     {
-        return 0;
+        gMsg.at(1) = 0.0;
     }
 } // end GUTS::setSurvivors()
 
@@ -125,7 +143,7 @@ bool GUTS::setSurvivors(const vector<int>& y, const vector<double>& yt)
  * Setter for mpar, zPars.
  * zPars are checkt in doSample, according to sample to be drawn.
  */
-bool GUTS::setParameters(const vector<double>& par)
+void GUTS::setParameters(const vector<double>& par)
 {
     // at least 3 elements required.
     if ( par.size() > 2 )
@@ -137,31 +155,37 @@ bool GUTS::setParameters(const vector<double>& par)
          * Second par must be > 0
          * Check zPars in doSample, not here.
          */
-        if ( *min_element( mpar.begin(), mpar.begin()+3 ) < 0.0 )
-            return 0;
+        if ( *min_element( par.begin(), par.begin()+3 ) < 0.0 )
+        {
+            gMsg.at(2) = -1000.0;
+            return;
+        }
         else if ( par.at( 1 ) <= 0.0 )
-            return 0;
+        {
+            gMsg.at(2) = 0.0;
+            return;
+        }
 
         mpar = par;
+        gMsg.at(2) = 1.0;
         
         // Overwrite zPar defaults, if mpar.size() > 3
         for ( unsigned int i = 3; i < mpar.size(); ++i )
         {
-            sampleByUser = 0; // no extra if-check, just do it 2 times or so
+            mustSample = 1; // no extra if-check, just say do sample
             zPars.at( i - 3 ) = mpar.at( i ); // 0 <- 3 ...
         }
-        return 1;
     }
     else
     {
-        return 0;
+        gMsg.at(2) = 0.0;
     }
 } // end GUTS::setParameters()
 
 /*
  * Setter for mM, D, and dtau.
  */
-bool GUTS::setTimeGridPoints(const int& M)
+void GUTS::setTimeGridPoints(const int& M)
 {
     // M > 4 to be safe.
     if (M > 4)
@@ -169,101 +193,129 @@ bool GUTS::setTimeGridPoints(const int& M)
         mM = M;
         D.assign( mM, 0.0 ); // default
         dtau = ( myt.back() - myt.front() ) / mM;
-        return 1;
+
+        gMsg.at(3) = 1.0;
     }
     else
     {
-        return 0;
+        gMsg.at(3) = 0.0;
     }
 } // end GUTS::setTimeGridPoints()
 
 /*
  * Set distribution.
  */
-bool GUTS::setDistribution( const string dist )
+void GUTS::setDistribution( const string dist )
 {
-// FIXME: kann dict abfragen, ob dist enthalten ist!!!
-/*
-    if ( mdist == "" || mdist == "none" || mdist == "empirical" )
+    if ( dist == "lognormal" )
     {
-        sampleByUser = 1;
+        mdist = dist;
+        mustSample = 1; // true, do sample
+        gMsg.at(4) = 1.0; // no error
     }
-*/
-    // if not in dict, return -1
-
-    mdist = dist;
-    sampleByUser = 0;
-    return 1;
+    else if ( dist == "empirical" )
+    {
+        mdist = dist;
+        mustSample = 0; // false, do not sample
+        gMsg.at(4) = 1.0; // no error
+    }
+    else
+    {
+        mdist = "none"; // the default
+        gMsg.at(4) = 0.0; // error
+        mustSample = 1; // true, fill all with 1.1
+    }
 } // end GUTS::setDistribution()
 
 /*
  * Setter for mN.
  */
-bool GUTS::setSampleLength(const int& N)
+void GUTS::setSampleLength(const int& N)
 {
     /*
-     * N > 4 to be safe.
-     * Sizes of ee and ff are N-dependent, but these two vectors are
-     * reseted in calcLoglikelihood anyway.
+     * N > 4 to be safe. Sizes of ee and ff are N-dependent, but
+     * these two vectors are reset in calcLoglikelihood anyway.
      */
     if (N > 4)
     {
         mN = N;
-        sampleByUser = 0;
-        return 1;
+        gMsg.at(5) = 1.0;
     }
     else
     {
-        return 0;
+        gMsg.at(5) = 0.0;
     }
 } // end GUTS::setSampleLength()
 
 /*
  * The user method for passing a ready to run vector.
  */
-bool GUTS::setSample(const vector<double>& z )
+void GUTS::setSample( const vector<double>& z )
 {
     if ( z.size() > 4 )
     {
-        sampleByUser = 1; // remember that the user sampled already
+        mustSample = 0; // false, do not sample
         mz = z;
         sort( mz.begin(), mz.end() ); // Always sort!
-        mN = mz.size();
-        mdist = "empirical";
-        return 1;
+        setDistribution( "empirical" );
+        setSampleLength( mz.size() );
+        doSample(); // setting error there to 0
+        gMsg.at(6) = 1.0;
     }
     else
     {
-        return 0;
+        gMsg.at(6) = 0.0;
     }
 } // end GUTS::setSample()
 
 /*
- * for debugging only
+ * Printout. Currently not very nice :-).
  */
+
+void to_print( double i )
+{
+    cout << i << ", ";
+}
 void GUTS::showObject()
 {
-    cout << "mC: first: " << mC.front() << ", last: " << mC.back()
-        << ", size: " << mC.size() << endl;
-    cout << "mCt: first: " << mCt.front() << ", last: " << mCt.back()
-        << ", size: " << mCt.size() << endl;
-    cout << "my: first: " << my.front() << ", last: " << my.back()
-        << ", size: " << my.size() << endl;
-    cout << "myt: first: " << myt.front() << ", last: " << myt.back()
-        << ", size: " << myt.size() << endl;
-    cout << "mM: " << mM << "\nmN: " << mN << endl;
-    cout << "dist: " << mdist << endl;
-    cout << "mpar: first: " << mpar.front() << ", last: " << mpar.back()
-        << ", size: " << mpar.size() << endl;
+    std::cout << left << "Concentrations (C, " << mC.size()
+        << " elements):" << endl;
+    for_each( mC.begin(), mC.end()-1, to_print);
+    cout << mC.back() << endl;
+    
+    cout << left << "Concentration times (Ct, " << mCt.size()
+        << " elements):" << endl;
+    for_each( mCt.begin(), mCt.end()-1, to_print);
+    cout << mCt.back() << endl;
+
+    cout << left << "Suvivors (y, " << myt.size()
+        << " elements):" << endl;
+    for_each( my.begin(), my.end()-2, to_print);
+    cout << my.at(my.size()-2) << endl;
+
+    cout << left << "Suvivor times (yt, " << myt.size()
+        << " elements):" << endl;
+    for_each( myt.begin(), myt.end()-1, to_print);
+    cout << myt.back() << endl;
+    
+    cout << left << "Parameters (par, " << mpar.size()
+        << " elements):" << endl;
+    for_each( mpar.begin(), mpar.end()-1, to_print);
+    cout << mpar.back() << endl;
+    
+
+    cout << left << "Time grid points (M): " << mM << endl;
+    cout << left << "Distribution (dist) : " << mdist << endl;
+    cout << left << "Sample length (N)   : " << mN << endl;
+/*    
     cout << "mz: first: " << mz.front() << ", last: " << mz.back()
         << ", size: " << mz.size() << endl;
-    cout << "D: first: " << D.front() << ", last: " << D.back()
-        << ", size: " << D.size() << endl;
-    cout << "S: first: " << S.front() << ", last: " << S.back()
-        << ", size: " << S.size() << endl;
-    cout << "ee: first: " << ee.front() << ", last: " << ee.back()
-        << ", size: " << ee.size() << endl;
-    cout << "ff: first: " << ff.front() << ", last: " << ff.back()
-        << ", size: " << ff.size() << endl;
-    cout << "dtau: " << dtau << endl;
+*/
+/*
+    cout << left << "gMsg (" << gMsg.size()
+        << " elements):" << endl;
+    for_each( gMsg.begin(), gMsg.end()-1, to_print);
+    cout << gMsg.back() << endl;
+*/
+    cout << "\n" << endl;
 }

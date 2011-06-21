@@ -10,17 +10,22 @@
 \alias{Rcpp_GUTS-class}
 \alias{Rcpp_GUTS}
 \alias{modguts}
-\alias{print.guts}
+\alias{print.GUTS}
 
 \title{Class \code{GUTS} (\code{"Rcpp_GUTS"})}
 
-\description{\code{GUTS} represents survivor model experiments for which the logarithm of the likelihood can be calculated. \code{GUTS} is the constructor object of the C++ class “GUTS” exposed to R through the \link{Rcpp} module \code{modguts}. The reference class for \code{GUTS} is \code{"Rcpp_GUTS"}.}
+\description{
+\code{GUTS} (General Unified Theory of Survival) is a stochastic survival model for ecotoxicology.
+The R class \code{GUTS} allows for the definition of exposure and survival time series as well as parameter values, and the calculation of the logarithm of the corresponding likelihood.
+\code{GUTS} is the constructor object of the C++ class “GUTS” exposed to R through the \link{Rcpp} module \code{modguts}.
+The reference class for \code{GUTS} is \code{"Rcpp_GUTS"}.
+}
 
 \section{Objects from the Class}{
 New objects can be created by calls to the \bold{reference method} \code{new()} (see \link{ReferenceClasses}), or the \bold{function} \code{new("Rcpp_GUTS")}. Currently, no arguments must be provided, and a “factory fresh” \code{GUTS} object is filled with default non-sense values. A \code{GUTS} object has no public fields. Setter methods must be used to set values of an object.
 }
 
-\section{Slots}{The class has no slots. Private fields can be set using methods (see below).}
+%\section{Slots}{The class has no slots. Private fields can be set using methods (see below).}
 
 \section{Methods}{
   \describe{
@@ -29,13 +34,18 @@ New objects can be created by calls to the \bold{reference method} \code{new()} 
     \item{setConcentrations}{\code{signature(C = "double", Ct = "double")}:
       Set the vectors of concentrations (\code{C}) and concentration time points (\code{Ct}).
       \code{C} and \code{Ct} must have the same length.
-      \code{Ct} and \code{yt} must use the same time units.}
+      \code{Ct} and \code{yt} must use the same time units.
+      \code{Ct} must start at 0.
+      The last time point of \code{Ct} must be greater than or equal to the last time point of \code{yt}.
+    }
 
     \item{setSurvivors}{\code{signature(y = "integer", yt = "double")}:
       Set the vectors of survivors (\code{y}) and survivor time points (\code{yt}).
       \code{y} must be a vector of integers (counts).
       \code{y} and \code{yt} must have the same length.
       \code{Ct} and \code{yt} must use the same time units.
+      \code{yt} must start at 0.
+      The last time point of \code{yt} must be smaller than or equal to the last time point of \code{Ct}.
     }
 
     \item{setParameters}{\code{signature(par = "double")}:
@@ -50,6 +60,7 @@ New objects can be created by calls to the \bold{reference method} \code{new()} 
     }
     
     \item{setDistribution}{\code{signature(dist = "character")}:
+      Defaults to \code{"none"}.
       Set the \bold{name} of the distribution to create.
       See section \bold{Distributions} for details.
       Do not append distribution parameters here!
@@ -64,42 +75,45 @@ New objects can be created by calls to the \bold{reference method} \code{new()} 
     \item{setSample}{\code{signature(z = "double")}:
       Set an empirical sample \bold{instead} of a theoretical distribution to sample from.
       \code{setSample} will override \code{setDistribution} and \code{setSampleLength}, and
-        sets \code{dist} to \"empirical\", and \code{N} to the length of \code{z}.
+        sets \code{dist} to \dQuote{empirical}, and \code{N} to the length of \code{z}.
     }
 
     \item{calcLoglikelihood}{\code{signature()}:
-      Calculate the logarithm of the likelihood of a properly set-up \code{"GUTS"} object.
+      Calculate the logarithm of the likelihood of a properly set-up \code{"GUTS"} object. The method returns a numeric.
     }
 
-    \item{showObject}{\code{signature()}:
-      Display current values of a GUTS object.
-    }
     \item{show}{\code{signature()}:
-      S4 method wrapper for method \code{showObject}.
+      Display current values of a GUTS object. S4 wrapper for field access with a formatted output.
     }
   }
+}
+
+\section{Fields}{
+\code{C}, \code{Ct}, \code{y}, \code{yt}, \code{par}, \code{M}, \code{dist}, \code{N}, and \code{z} are fields of a GUTS object. Note that any of these fields is \bold{read-only}. Content can be modified using setters (see above). However, field contents can be displayed, or assigned to other R variables using the standard R procedures.
 }
 
 \section{Distributions}{%
 \code{GUTS} creates samples internally according to \code{dist}, \code{N}, and \code{pars[4:length(pars)]}. If no parameters for the creation of the distribution are given, default values are applied. \code{dist} must be one of the following alternatives:
   \describe{
-    \item{\code{"normal"}}{Create a sample of size \code{N} from a normal distribution
-      with \code{mean = pars[4]}, and \code{sigma = pars[5]}.}
+    \item{\code{"empirical"}}{Does not sample, rather expect an empirical sample with \code{setSample()}.}
+
     \item{\code{"lognormal"}}{Create a sample of size \code{N} from a lognormal distribution
       with \code{mean = pars[4]}, and \code{sigma = pars[5]}. Note that mean and sigma are parameters for the
       \bold{lognormal} distribution, not its logarithm (differs from \code{rlnorm} in R)!}
+
+    \item{\code{"none"}}{Default. Does not sample or calculate anything.}
   }
 }
 
 \section{Functions}{
   \describe{
-    \item{print.guts(object)}{Simple wrapper for \code{showObject}.}
+    \item{print.guts(object)}{Simple wrapper for \code{show}.}
   }
 }
 
 \section{Notes and warnings}{
   \describe{
-    \item{Compiling from source}{Compilation from source would require an installation of the C++ boost library (\href{http://www.boost.org/}{http://www.boost.org/}). The library is expected in \code{/opt/local/include} under UNIX-likes, and in \code{/Boost} under Windows. Change the makefiles in \code{GUTS/src} to fit your installation.}
+%    \item{Compiling from source}{Compilation from source would require an installation of the C++ boost library (\href{http://www.boost.org/}{http://www.boost.org/}). The library is expected in \code{/opt/local/include} under UNIX-likes, and in \code{/Boost} under Windows. Change the makefiles in \code{GUTS/src} to fit your installation.}
     \item{Serialisation}{Serialisation is currently not implemented. Objects of class \code{GUTS} cannot be saved across sessions. Clean out every \code{GUTS} objet from your workspace before leaving R. On restart, rebuild \code{GUTS} objects if necessary.}
     \item{Development status}{The package is under current development. \bold{Save your work before working with it.}}
   }
@@ -155,8 +169,8 @@ z <- sort( rlnorm(10000,
   2.8943280, 0.33420543) ) # *meanlog* and *meansd*!!!
 obj2$setSample( z = z )
 obj2$calcLoglikelihood() # abt -183
-#\dontrun{
-#}
+
+obj2
 }
 
 \keyword{classes}

@@ -9,33 +9,27 @@
 
 #include "GUTS.h"
 
+using namespace std;
+
 double GUTS::calcLoglikelihood()
 {
     double outDefault = -1000.0; // the default return
 
     /*
-     * Check requirements for the method to work properly
+     * Check some errors.
      */
     if ( myt.back() > mCt.back() )
         return 0.0; //exit( 1 ); // error
-    if ( dtau <= 0 )
+    if ( dtau <= 0.0 )
         return outDefault;
-    /*
-     * end requirements check
-     */
-
-    /*
-     * Create (and check for) sample if necessary.
-     */
-    int sc;
-    if ( sampleByUser == 0 )
-    {
-        sc = doSample();
-    }
-    if ( sc == 0 )
+    if ( doSample() == 0 )
         return 0.0;
+    for ( unsigned int i = 0; i < gMsg.size(); ++i )
+        if ( gMsg.at(i) < 1.0 ) return gMsg.at(i); // any error
+//    if ( *min_element( gMsg.begin(), gMsg.end() ) < 0 )
+//        return outDefault;
     /*
-     * End sample creation and check.
+     * End error check.
      */
 
     /*
@@ -129,19 +123,21 @@ double GUTS::calcLoglikelihood()
             }
         } // end while ( tau < myt.at(i) )
 
+        // E = sum of all ee
         // F = sum of all ff
+        double E = accumulate( ee.begin(), ee.end(), 0.0);
         double F = accumulate( ff.begin(), ff.end(), 0.0);
-
+        
         // Calculate S.at(i):
-        S.at(i) = exp( dk * mz.at(0) * F );
-        for ( int u=1; u<mN; ++u )
+        S.at(i) = exp( dk * ( mz.at(0) * F - E ) );
+        for ( int u=1; u < mN; ++u )
         {
+            E -= ee.at(u-1);
             F -= ff.at(u-1);
-            S.at(i) = exp( dk * mz.at(u) * F )
-                      + exp( -ee.at(u-1) * dk )
-                      * S.at(i);
+            S.at(i) += exp( dk * ( mz.at(u) * F - E ) );
         }
-        S.at(i) *= exp( -mpar.front() * myt.at(i) - ee.back() * dk ) / mN;
+        S.at(i) *= exp( -mpar.front() * myt.at(i) ) / mN;
+
     } // end for ( unsigned int i = 0; i < myt.size (); i++ )
 
     // Calculate loglikelihood
@@ -152,7 +148,7 @@ double GUTS::calcLoglikelihood()
         int diffy = my.at(i) - my.at(i+1);
         if ( diffS < 0.001 )
         {
-            if ( diffy != 0.0 ) return outDefault;
+            if ( diffy != 0 ) return outDefault;
         }
         else
         {
