@@ -1,0 +1,4 @@
+useDynLib(GUTS)
+exportPattern("^[[:alpha:]]+")
+import( methods )
+import( Rcpp )
