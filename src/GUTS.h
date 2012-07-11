@@ -1,11 +1,11 @@
-/** GUTS class.
- * @file    GUTS.h
- * @author  carlo.albert@eawag.ch, soeren.vogel@eawag.ch
- * @date    30 Jun 2011
+/** Class GUTS.
+ * @file        GUTS.h
+ * @author      soeren.vogel@uzh.ch
+ * @author      carlo.albert@eawag.ch, 
+ * @date        2012-05-11
+ * @license     GPL-3
  *
- * C++ class GUTS:
- * Fast Calculation of the Likelihood of a Stochastic Survival Model
- * License: GPL-2
+ * GUTS: Fast Calculation of the Likelihood of a Stochastic Survival Model
  */
 
 #ifndef guts_h
@@ -17,155 +17,189 @@
 #include <algorithm>
 #include <string>
 #include <map>
-#include <ctime> // for rng
+#include <ctime>  // For random number generator.
 #include <boost/random.hpp>
 #include <boost/math/distributions.hpp>
 
 using namespace std;
 
-/** Class GUTS
- * GUTS objects represent survival models for which the logarithm
- * of the likelihood can be calculated.
+// This does not work, instead sets GNAN_INT to 0
+//const int GNAN_INT = std::numeric_limits<int>::quiet_NaN();
+const int         GNAN_INT    = 0;
+const double      GNAN_DOUBLE = numeric_limits<double>::quiet_NaN();
+const std::string GNAN_STRING = "NaN";
+
+
+/*
+ * The Class GUTS
  */
-class GUTS
-{
+class GUTS {
+
 public:
 
-    GUTS();
-    ~GUTS();
+  GUTS();
+  ~GUTS();
+
+  /** Title of the Experiment
+   */
+  void setTitle(const string Title) {
+    mTitle = Title;
+  }
+
+  /** Set time series vector of concentrations.
+   * @param   C   Vector of concentrations.
+   * @param   Ct  Vector of time points of concentrations (must start at 0).
+   * Must be of equal length. Set mC and mCt.
+   * Error: GER_C, GER_CT
+   */
+  void setConcentrations(const vector<double>& C, const vector<double>& Ct);
+
+  /** Set time series vector of survivors.
+   * @param   y   Vector of survivors.
+   * @param   yt  Vector of time points of survivors (must start at 0).
+   * Must be of equal length. Set my and myt.
+   * Error: GER_Y, GER_YT
+   */
+  void setSurvivors(const vector<int>& y, const vector<double>& yt);
+
+  /** Set parameter vector of the object.
+   * @param   par     Vector of numerics.
+   * Vector must be of size > 2. First three are required for the calculation
+   * of the loglikelihood, the latter are used for the construction of sample
+   * vector z. Set mpar.
+   * Error: GER_PAR
+   */
+  void setParameters(const vector<double>& par);
+
+  /** Set number of grid points on the time-axis.
+   * @param   M   Integer.
+   * Grid points of the time axis used for the integration. Set mM.
+   * Error: GER_M
+   */
+  void setTimeGridPoints(const int& M);
+
+  /** The (name of the) distribution to sample from.
+   * @param:  dist    string
+   * Set mdist.
+   * Error: GER_DIST
+   */
+  void setDistribution(const string dist);
+
+  /** Size of the sample.
+   * @param   N   Integer.
+   * Set mN.
+   * Error: GER_N
+   */
+  void setSampleLength(const int& N);
+
+  /** Sample vector.
+   * @param   z    Vector of numerics.
+   * Set mz.
+   * Error: GER_Z
+   */
+  void setSample(const vector<double> &z);
+
+  /** Construct the sample, sort, and save result in mz.
+   * Set mz.
+   * Error: GER_Z
+   */
+  void calcSample();
+
+  /** Calculate survival probabilities and save result in mS.
+   * Overloaded. Use the method with either of the following arguments:
+   * @param   <none>    Standard invokation. Use local fields for calculation.
+   * @param   St        Survival time points, defaults to myt.
+   * @param   Stlength  Number of survival time point, defaults to myt.size().
+   * Set mS.
+   * Error: GER_S
+   */
+  void calcSurvivalProbabilities();
+  void calcSurvivalProbabilities(const unsigned int& Stlength);
+  void calcSurvivalProbabilities(const vector<double>& St);
+
+  /** Calculate loglikelihood.
+   * Set mLL.
+   * Error: GER_LL
+   */
+  void calcLoglikelihood();
+
+  /** Getters.
+   * Simply return contents of field.
+   */
+  string          getTitle()  const { return mTitle; }
+  vector<double>  getC()      const { return mC; }
+  vector<double>  getCt()     const { return mCt; }
+  vector<int>     gety()      const { return my; }
+  vector<double>  getyt()     const { return myt; }
+  vector<double>  getpar()    const { return mpar; }
+  int             getM()      const { return mM; }
+  string          getdist()   const { return mdist; }
+  int             getN()      const { return mN; }
+  vector<double>  getz()      const { return mz; }
+  vector<double>  getD()      const { return mD; }
+  vector<double>  getS()      const { return mS; }
+  double          getLL()     const { return mLL; }
+  vector<bool>    getErrors() const { return mErrors; }
+  vector<string>  getErrorMessages()
+    const { return mErrorMessages; }
+  
+  /** showObject()
+   * Print complete object in a formatted way to cout.
+   * This method is only used in the console version of GUTS.
+   * The R version has its own print method.
+   */
+  void showObject();
+
+protected:
+  
+  /** Attributes of a GUTS object.
+   * See method description for details on the variables.
+   */
+  string mTitle;                  // Title of the experiment.
+  vector<double> mC;              // Concentrations
+  vector<double> mCt;             // Time points of concentratinos
+  vector<int> my;                 // Survivors
+  vector<double> myt;             // Survivor time points
+  vector<double> mpar;            // Parameters
+  int mM;                         // Time grid points
+  string mdist;                   // Name of distribution
+  int mN;                         // Length of z (sample)
+  vector<double> mz;              // Actual sample
+  vector<double> mD;              // Damage
+  vector<double> mS;              // Survival probabilities
+  double mLL;                     // The loglikelihood.
+
+  /** do-Methods
+   * Work horses for specific samples and the
+   * calculation of the survival probabilities.
+   */
+  void doCalcSampleLognormal
+    (const double& mean, const double& sigma, const int& n);
+  void doCalcSurvivalProbabilities();
+
+  /** Errors.
+   * mErrors are true, if errors exist, false, if no errors exist!
+   */
+  vector<bool> mErrors;
+  vector<string> mErrorMessages;
+  enum
+  {
+    GER_C = 0,
+    GER_CT,
+    GER_Y,
+    GER_YT,
+    GER_PAR,
+    GER_M,
+    GER_DIST,
+    GER_N,
+    GER_Z,
+    GER_D,
+    GER_S,
+    GER_LL,
     
-    /** Time series vector of concentrations.
-     * @param   C   Vector of concentrations.
-     * @param   Ct  Vector of time points of concentrations (must start at 0).
-     *
-     * Must be of equal length. Set mC and mCt.
-     */
-    void setConcentrations(const vector<double>& C, const vector<double>& Ct);
+    GER_COUNT = 12 // ***RE-COUNT if you add or remove error positions!!!***
+  };
 
-    /** Time series vector of survivors.
-     * @param   y   Vector of survivors.
-     * @param   yt  Vector of time points of survivors (must start at 0).
-     *
-     * Must be of equal length. Set y/my and yt/myt, appends value 0 to my.
-     */
-    void setSurvivors(const vector<int>& y, const vector<double>& yt);
-
-    /** Parameter vector of the object.
-     * @param   par     Vector of numerics (> 2).
-     * @return  True/false where false indicates an error.
-     *
-     * Vector must be of size >2. First three are required for the calculation
-     * of the loglikelihood, the latter are used for the construction of sample
-     * vector z. Set par/mpar.
-     */
-    void setParameters(const vector<double>& par);
-
-    /** Number of grid points on the time-axis.
-     * @method  setTimeGridPoints
-     * @param   M   Positive non-zero integer.
-     * @return  True/false where false indicates an error.
-     *
-     * Indicates the grid points of the time axis used for the integration.
-     * Set M/mM.
-     */
-    void setTimeGridPoints(const int& M);
-
-    /** The (name of the) distribution to sample from.
-     * @param:  dist    character (name)
-     * @return: True/false where false indicates an error.
-     */
-    void setDistribution( const string dist );
-
-    /** Size of the sample.
-     * @param   N   Positive non-zero integer.
-     * @return  True/false where false indicates an error.
-     */
-    void setSampleLength(const int& N);
-
-    /** Sample vector.
-     * @param   z    Vector of non-negative ordered numerics.
-     * @param   byUser  Sample provided by user or from class parameters.
-     * @return  True/false where false indicates an error.
-     *
-     * Public method takes a vector of non-negative numerics. The vector must
-     * be in ascending order. Sets mz and hbyUser.
-     */
-    void setSample( const vector<double> &z);
-
-    /** Calculate loglikelihood.
-     * @return  Numeric, the loglikelihood.
-     *
-     * Public method takes all private fields of the object and calculates
-     * the loglikelihood. Various consistency checks are done, see
-     * implementation for details. Returns -1000 per default, else a
-     * negative numeric.
-     */
-    double calcLoglikelihood();
-
-    /*
-     * for debugging only
-     */
-    void showObject();
-    
-    /*
-     * Getters.
-     */
-    vector<double> getC() { return mC; }
-    vector<double> getCt() { return mCt; }
-    vector<int> gety() { return my; }
-    vector<double> getyt() { return myt; }
-    vector<double> getpar() { return mpar; }
-    int getM() { return mM; }
-    string getdist() { return mdist; }
-    int getN() { return mN; }
-    vector<double> getz() { return mz; }
-
-private:
-
-    /** Construct the sample, sort, and save result in z.
-     * @param   none
-     * @return  ordered sample of length mN from mdist saved in mz
-     *
-     * The doSample method uses algorithms from the boost library.
-     */
-    bool doSample();
-
-    /** Attributes of a GUTS object.
-     *
-     * Each variable from the methods above is prefixed with character m.
-     * See method description for details on the variables.
-     */
-    vector<double> mC;      // Concentrations
-    vector<double> mCt;     // Time points of concentratinos
-    vector<int> my;         // Survivors (= y, appended 0)
-    vector<double> myt;     // Survivor time points
-    vector<double> mpar;    // Parameters
-    int mM;                 // Time grid points
-    string mdist;           // Name of distribution
-    int mN;                 // Length of z (sample)
-    vector<double> mz;      // z (sample)
-
-    /** Current state of a GUTS object.
-     *
-     * Fields represent the current state of the object.
-     * D: time series of damages in the organism
-     * S: time series of survivor probabilities
-     * ee: sum of all Ds between z_j and z_j+1
-     * ff: number of Ds between z_j and z_j+1
-     */
-    vector<double> D;       // length of mM, first element 0.0
-    vector<double> S;       // length of my, any elements
-    vector<double> ee;      // length of mN, all elements 0.0
-    vector<int> ff;         // length of mN, all elements 0
-    double dtau;            // time difference of myt divided by mM
-    
-    /*
-     * Helpers.
-     */
-    bool mustSample;        // Do we need to sample?
-    vector<double> zPars;   // Parameters for sampling
-    vector<double> gMsg;
-    //std::map<std::string, int> gError;
-};
+}; // end class GUTS
 
 #endif

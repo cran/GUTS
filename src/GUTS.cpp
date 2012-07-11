@@ -1,11 +1,10 @@
 /** GUTS class implementation.
- * @file    GUTS.cpp
- * @author  carlo.albert@eawag.ch, soeren.vogel@eawag.ch
- * @date    30 Jun 2011
  *
- * C++ class GUTS:
- * Fast Calculation of the Likelihood of a Stochastic Survival Model
- * License: GPL-2
+ * @file		GUTS.cpp
+ * @author	soeren.vogel@uzh.ch
+ * @author	carlo.albert@eawag.ch
+ * @date		2012-05-11
+ * @license	GPL-2
  */
 
 #ifndef guts_h
@@ -14,308 +13,329 @@
 
 using namespace std;
 
-/** GUTS class constructor.
- *
- * Defaults do not represent a working example, they
- * are only present to avoid calculation errors.
+/*
+ * Constructor.
  */
-GUTS::GUTS()
+GUTS::GUTS() : 
+  mTitle("Experiment"),
+  mC(), mCt(), my(), myt(),
+  mpar(), mM(10000), mdist("lognormal"), mN(10000),
+  mz(), mD(), mS(), mLL(GNAN_DOUBLE),
+  mErrors(GER_COUNT, true), mErrorMessages(GER_COUNT, "")
 {
-    /*
-     * Attributes and public fields.
-     */
-    mC.assign( 10, 1.0 );
-    mCt.assign( 10, 1.0 );
-    my.assign( 11, 0 );         // appended field with 0
-    myt.assign( 10, 1.0 );
-    mpar.assign( 5, 1.0 );
-    mM = 10000;
-    mdist = "none";
-    mN = 10000;
-    mz.assign( 10000, 1.0 );
+  mErrorMessages.at(GER_C)    = "C not set up";
+  mErrorMessages.at(GER_CT)   = "Ct not set up";
+  mErrorMessages.at(GER_Y)    = "y not set up";
+  mErrorMessages.at(GER_YT)   = "yt not set up";
+  mErrorMessages.at(GER_PAR)  = "par not set up";
 
-    /*
-     * Current state.
-     */
-    D.assign( mM, 0.0 );        // length of mM, all elements 0.0
-    S.assign( my.size(), 0.0 ); // length of my, any elements
-    ee.assign( mN, 0.0 );       // length of mN, all elements 0.0
-    ff.assign( mN, 0 );         // length of mN, all elements 0.0
+  // M has a default value of 10000
+  mErrors.at(GER_M)           = false;
+  mErrorMessages.at(GER_M)    = "";
+  
+  // dist has a valid default:
+  mErrors.at(GER_DIST)        = false;
+  mErrorMessages.at(GER_DIST) = "";
+  
+  // N has a default value of 10000
+  mErrors.at(GER_N)           = false;
+  mErrorMessages.at(GER_N)    = "";
 
-    /*
-     * dtau is updated in setSurvivors(), AND setTimeGripPoints()
-     */
-    dtau = 0.1;
-    
-    /*
-     * Helpers.
-     */
-    mustSample = 0;             // default: false, do not sample
-    zPars.assign( 10, 1.0 );    // long enough
-    gMsg.assign( 7, 0.0 );
+  mErrorMessages.at(GER_Z)    = "z not available";
+  
+  // There's ToDos on D, use no error so far
+  mErrors.at(GER_D)           = false;
+  mErrorMessages.at(GER_D)    = "";
+  
+  mErrorMessages.at(GER_S)    = "Survival probabilities not calculated";
+  mErrorMessages.at(GER_LL)   = "Loglikelihood not calculated";
 } // end GUTS::GUTS()
 
 /*
  * Destructor.
  */
-GUTS::~GUTS()
-{
-    mC.clear();
-    mCt.clear();
-    my.clear();
-    myt.clear();
-    mpar.clear();
-    mz.clear();
-    D.clear();
-    S.clear();
-    ee.clear();
-    ff.clear();
-    zPars.clear();
-    gMsg.clear();
+GUTS::~GUTS() {
+  mC.clear();
+  mCt.clear();
+  my.clear();
+  myt.clear();
+  mpar.clear();
+  mz.clear();
+  mD.clear();
+  mS.clear();
+  mErrors.clear();
+  mErrorMessages.clear();
 } // end GUTS::~GUTS()
 
 /*
  * mC and mCt
+ * Error read: none
+ * Error write: GER_C, GER_CT
  */
-void GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct)
-{
-    // Minimum length, same size, first Ct = 0
-    if (C.size() > 2 && C.size() == Ct.size() && Ct.at(0) == 0.0)
-    {
-        // No Ct.at(k+1) - Ct.at(k) <= 0! Prevent division by 0.
-        for ( unsigned int i = 0; i < (Ct.size() - 1); ++i)
-        {
-            if ( (Ct.at(i+1) - Ct.at(i)) <= 0 )
-            {
-                gMsg.at(0) = 0.0;
-                return;
-            }
-        }
+void GUTS::setConcentrations(const vector<double>& C, const vector<double>& Ct) {
+  // Reset errors on this method (false means no error).
+  int i[] = {GER_C, GER_CT};
+  for (unsigned int j = 0; j < 2; ++j) {
+    mErrors.at(i[j])        = false;
+    mErrorMessages.at(i[j]) = "";
+  }
 
-        // Okay, lets assign
-        mC = C;
-        mCt = Ct;
-        gMsg.at(0) = 1.0;
-    }
-    else
+  // New errors on C
+  if (C.size() < 2) {
+    mErrors.at(GER_C)         = true;
+    mErrorMessages.at(GER_C)  = "vector C must be longer than 1";
+  }
+  if (C.size() != Ct.size()) {
+    mErrors.at(GER_C)         = true;
+    mErrorMessages.at(GER_C)  = "vectors C and Ct must have the same length";
+  }
+
+  // New errors on Ct
+  if ( Ct.size() < 2 )
+  {
+    mErrors.at( GER_CT )        = true;
+    mErrorMessages.at( GER_CT ) = "Vector Ct must be longer than 1.";
+  }
+  if ( Ct.size() != C.size() )
+  {
+    mErrors.at( GER_CT )        = true;
+    mErrorMessages.at( GER_CT ) = "Vectors Ct and C must have the same length.";
+  }
+  if ( Ct.at(0) != 0.0f )
+  {
+    mErrors.at( GER_CT )        = true;
+    mErrorMessages.at( GER_CT ) = "Vector Ct must start at 0.0.";
+  }
+  for ( unsigned int i = 1; i < Ct.size(); ++i )
+  {
+    // Prevent division by 0.
+    if ( (Ct.at(i) - Ct.at(i-1)) <= 0.0f )
     {
-        gMsg.at(0) = 0.0;
+      mErrors.at( GER_CT )		= true;
+      mErrorMessages.at( GER_CT ) = "Vector Ct must contain unique values in ascending order.";
     }
+  }
+  
+  // Assign C if no errors, no errors means false!
+  if ( ! mErrors.at( GER_C ) )
+    mC = C;
+  else
+    mC.resize( 0 );
+  
+  // Assign Ct if no errors, no errors means false!
+  if ( ! mErrors.at( GER_CT ) )
+    mCt = Ct;
+  else
+    mCt.resize( 0 );
 } // end GUTS::setConcentrations()
 
 /*
- * Setter for my and myt. my needs a 0 appended. S.back() must be 0.0.
- * S and dtau are also set.
+ * my and myt.
+ * error read: none
+ * error write: GER_Y, GER_YT
  */
-void GUTS::setSurvivors(const vector<int>& y, const vector<double>& yt)
+void GUTS::setSurvivors( const vector<int>& y, const vector<double>& yt )
 {
-    // Minimum length, same size, first yt = 0, last > first
-    if (y.size() > 2 && y.size() == yt.size() && yt.at(0) == 0.0)
+  // Reset errors on this method.
+  int i[] = { GER_Y, GER_YT };
+  for ( unsigned int j = 0; j < 2; ++j )
+  {
+    mErrors.at( i[j] )          = false; // false means no error
+    mErrorMessages.at( i[j] )   = "";
+  }
+  
+  // New errors on y
+  if ( y.size() < 2 )
+  {
+    mErrors.at( GER_Y )			= true;
+    mErrorMessages.at( GER_Y )  = "Vector y must be longer than 1.";
+  }
+  if ( y.size() != yt.size() )
+  {
+    mErrors.at( GER_Y )         = true;
+    mErrorMessages.at( GER_Y )  = "Vectors y and yt must have the same length.";
+  }
+  
+  // New errors on yt
+  if ( yt.size() < 2 )
+  {
+    mErrors.at( GER_YT )        = true;
+    mErrorMessages.at( GER_YT ) = "Vector yt must be longer than 1.";
+  }
+  if ( yt.size() != y.size() )
+  {
+    mErrors.at( GER_YT )        = true;
+    mErrorMessages.at( GER_YT ) = "Vectors yt and y must have the same length.";
+  }
+  if ( yt.at(0) != 0.0f )
+  {
+    mErrors.at( GER_YT )        = true;
+    mErrorMessages.at( GER_YT ) = "Vector yt must start at 0.0.";
+  }
+  for ( unsigned int i = 1; i < yt.size(); ++i )
+  {
+    // Prevent division by 0
+    if ( (yt.at(i) - yt.at(i-1)) <= 0.0f )
     {
-        // No yt.at(k+1) - yt.at(k) <= 0!
-        for ( unsigned int i = 0; i < (yt.size() - 1); ++i)
-        {
-            if ( (yt.at(i+1) - yt.at(i)) <= 0 )
-            {
-                gMsg.at(1) = 0.0;
-                return;
-            }
-        }
-
-        my = y;
-        my.push_back( 0 ); // my[last + 1] is always 0
-        myt = yt;
-
-        S.resize( my.size() );
-        S.back() = 0.0;
-
-        dtau = ( myt.back() - myt.front() ) / mM;
-
-        gMsg.at(1) = 1.0;
+      mErrors.at(GER_YT)			= true;
+      mErrorMessages.at(GER_YT)  	= "Vector yt must contain unique values in ascending order.";
     }
-    else
-    {
-        gMsg.at(1) = 0.0;
-    }
+  }
+  
+  // Assign y if no errors
+  if ( ! mErrors.at( GER_Y ) )
+    my = y;
+  else
+    my.resize( 0 );
+  
+  // Assign yt if no errors
+  if ( ! mErrors.at( GER_YT ) )
+    myt = yt;
+  else
+    myt.resize( 0 );
 } // end GUTS::setSurvivors()
 
 /*
- * Setter for mpar, zPars.
- * zPars are checkt in doSample, according to sample to be drawn.
+ * mpar.
+ * error read: none
+ * error write: GER_PAR
+ * Sample parameters will be checked in calcSample()!
  */
-void GUTS::setParameters(const vector<double>& par)
+void GUTS::setParameters( const vector<double>& par )
 {
-    // at least 3 elements required.
-    if ( par.size() > 2 )
-    {
-        /*
-         * If any of the first three pars is lower than 0.000...
-         * was: std::numeric_limits<double>::epsilon(), but no need for
-         * this precision.
-         * Second par must be > 0
-         * Check zPars in doSample, not here.
-         */
-        if ( *min_element( par.begin(), par.begin()+3 ) < 0.0 )
-        {
-            gMsg.at(2) = -1000.0;
-            return;
-        }
-        else if ( par.at( 1 ) <= 0.0 )
-        {
-            gMsg.at(2) = 0.0;
-            return;
-        }
-
-        mpar = par;
-        gMsg.at(2) = 1.0;
-        
-        // Overwrite zPar defaults, if mpar.size() > 3
-        for ( unsigned int i = 3; i < mpar.size(); ++i )
-        {
-            mustSample = 1; // no extra if-check, just say do sample
-            zPars.at( i - 3 ) = mpar.at( i ); // 0 <- 3 ...
-        }
-    }
-    else
-    {
-        gMsg.at(2) = 0.0;
-    }
+  // Reset error on this method.
+  mErrors.at( GER_PAR )          = false; // false means no error
+	mErrorMessages.at( GER_PAR )   = "";
+  
+  // New errors on par
+  if ( par.size() < 3 )
+  {
+    mErrors.at( GER_PAR )			= true;
+    mErrorMessages.at( GER_PAR )	= "Vector par must be longer than 2.";
+  }
+  if ( *min_element( par.begin(), par.begin()+3 ) < 0.0 )
+  {
+    mErrors.at( GER_PAR )			= true;
+    mErrorMessages.at( GER_PAR )   	= "par 1, 2 and 3 must contain non-negative values.";
+  }
+  
+  // Assign par if no errors
+  if ( ! mErrors.at( GER_PAR ) )
+    mpar = par;
+  else
+    mpar.resize( 0 );
 } // end GUTS::setParameters()
 
 /*
- * Setter for mM, D, and dtau.
+ * mM.
+ * error read: none
+ * error write: GER_M
  */
-void GUTS::setTimeGridPoints(const int& M)
+void GUTS::setTimeGridPoints( const int& M )
 {
-    // M > 4 to be safe.
-    if (M > 4)
-    {
-        mM = M;
-        D.assign( mM, 0.0 ); // default
-        dtau = ( myt.back() - myt.front() ) / mM;
-
-        gMsg.at(3) = 1.0;
-    }
-    else
-    {
-        gMsg.at(3) = 0.0;
-    }
+  // Reset errors on this method.
+  mErrors.at( GER_M )			= false; // false means no error
+  mErrorMessages.at( GER_M ) 	= "";
+  
+  // New errors on M
+  if ( M < 2 )
+  {
+    mErrors.at( GER_M )			= true;
+    mErrorMessages.at( GER_M ) 	= "M must be greater than 1.";
+  }
+  
+  // Assign M if no errors
+  if ( ! mErrors.at( GER_M ) )
+    mM = M;
+  else
+    mM = GNAN_INT;
 } // end GUTS::setTimeGridPoints()
 
 /*
- * Set distribution.
+ * dist.
+ * error read: none
+ * error write: GER_DIST
  */
 void GUTS::setDistribution( const string dist )
 {
-    if ( dist == "lognormal" )
-    {
-        mdist = dist;
-        mustSample = 1; // true, do sample
-        gMsg.at(4) = 1.0; // no error
-    }
-    else if ( dist == "empirical" )
-    {
-        mdist = dist;
-        mustSample = 0; // false, do not sample
-        gMsg.at(4) = 1.0; // no error
-    }
-    else
-    {
-        mdist = "none"; // the default
-        gMsg.at(4) = 0.0; // error
-        mustSample = 1; // true, fill all with 1.1
-    }
+  // Reset error on dist
+  mErrors.at( GER_DIST )			= false;
+  mErrorMessages.at( GER_DIST )   = "";
+  
+  // New error on dist
+  if ( dist != "lognormal" && dist != "empirical" )
+  {
+    mErrors.at( GER_DIST )			= true;
+    mErrorMessages.at( GER_DIST )	= "Unknown distribution name.";
+  }
+  
+  // Assign dist if no errors
+  if ( ! mErrors.at( GER_DIST ) )
+    mdist = dist;
+  else
+    mdist = GNAN_STRING;
 } // end GUTS::setDistribution()
 
 /*
- * Setter for mN.
+ * mN.
+ * error read: none
+ * error write: GER_N, GER_Z
  */
-void GUTS::setSampleLength(const int& N)
+void GUTS::setSampleLength( const int& N )
 {
-    /*
-     * N > 4 to be safe. Sizes of ee and ff are N-dependent, but
-     * these two vectors are reset in calcLoglikelihood anyway.
-     */
-    if (N > 4)
-    {
-        mN = N;
-        gMsg.at(5) = 1.0;
-    }
-    else
-    {
-        gMsg.at(5) = 0.0;
-    }
+  // Reset errors on this method.
+  mErrors.at( GER_N )			= false;
+  mErrorMessages.at( GER_N )	= "";
+  
+  // New errors on N
+  if ( N < 3 )
+  {
+    mErrors.at( GER_N )			= true;
+    mErrorMessages.at( GER_N ) 	= "N must be greater than 2";
+  }
+  
+  // Assign n and size of z if no errors
+  if ( ! mErrors.at( GER_N ) )
+  {
+    mN = N;
+    mz.resize( mN );
+  }
+  else
+  {
+    mErrors.at( GER_Z ) = true;
+    mErrorMessages.at( GER_Z ) = "failed to set sample length N";
+    mN = GNAN_INT;
+  }
 } // end GUTS::setSampleLength()
 
 /*
- * The user method for passing a ready to run vector.
+ * mz.
+ * error read: none
+ * error write: GER_Z
  */
 void GUTS::setSample( const vector<double>& z )
 {
-    if ( z.size() > 4 )
-    {
-        mustSample = 0; // false, do not sample
-        mz = z;
-        sort( mz.begin(), mz.end() ); // Always sort!
-        setDistribution( "empirical" );
-        setSampleLength( mz.size() );
-        doSample(); // setting error there to 0
-        gMsg.at(6) = 1.0;
-    }
-    else
-    {
-        gMsg.at(6) = 0.0;
-    }
+  // Reset error on z
+  mErrors.at( GER_Z )			= false;
+  mErrorMessages.at( GER_Z )  = "";
+  
+  // New error on z
+  if ( z.size() < 3 )
+  {
+    mErrors.at( GER_Z )			= true;
+    mErrorMessages.at( GER_Z ) 	= "z must be longer than 2";
+  }
+  else if ( *min_element( z.begin(), z.end() ) < 0.0f )
+  {
+    mErrors.at( GER_Z )     	= true;
+    mErrorMessages.at( GER_Z )	= "z must contain non-negative values";
+  }
+  
+  // Assign z, dist and N if no errors
+  if ( ! mErrors.at( GER_Z ) )
+  {
+    mz = z;
+    setDistribution( "empirical" );
+    setSampleLength( mz.size() );
+  }
 } // end GUTS::setSample()
-
-/*
- * Printout. Currently not very nice :-).
- */
-
-void to_print( double i )
-{
-    cout << i << ", ";
-}
-void GUTS::showObject()
-{
-    std::cout << left << "Concentrations (C, " << mC.size()
-        << " elements):" << endl;
-    for_each( mC.begin(), mC.end()-1, to_print);
-    cout << mC.back() << endl;
-    
-    cout << left << "Concentration times (Ct, " << mCt.size()
-        << " elements):" << endl;
-    for_each( mCt.begin(), mCt.end()-1, to_print);
-    cout << mCt.back() << endl;
-
-    cout << left << "Suvivors (y, " << myt.size()
-        << " elements):" << endl;
-    for_each( my.begin(), my.end()-2, to_print);
-    cout << my.at(my.size()-2) << endl;
-
-    cout << left << "Suvivor times (yt, " << myt.size()
-        << " elements):" << endl;
-    for_each( myt.begin(), myt.end()-1, to_print);
-    cout << myt.back() << endl;
-    
-    cout << left << "Parameters (par, " << mpar.size()
-        << " elements):" << endl;
-    for_each( mpar.begin(), mpar.end()-1, to_print);
-    cout << mpar.back() << endl;
-    
-
-    cout << left << "Time grid points (M): " << mM << endl;
-    cout << left << "Distribution (dist) : " << mdist << endl;
-    cout << left << "Sample length (N)   : " << mN << endl;
-/*    
-    cout << "mz: first: " << mz.front() << ", last: " << mz.back()
-        << ", size: " << mz.size() << endl;
-*/
-/*
-    cout << left << "gMsg (" << gMsg.size()
-        << " elements):" << endl;
-    for_each( gMsg.begin(), gMsg.end()-1, to_print);
-    cout << gMsg.back() << endl;
-*/
-    cout << "\n" << endl;
-}
