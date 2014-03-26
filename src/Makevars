@@ -1,3 +1,0 @@
-PKG_CXXFLAGS=-g -O2 -I/usr/include -I.
-PKG_LIBS= -L/home/rforge/lib/R/2.15/Rcpp/lib -lRcpp -Wl,-rpath,/home/rforge/lib/R/2.15/Rcpp/lib -L/usr/lib
-
