@@ -2,9 +2,9 @@ Package: GUTS
 Type: Package
 Title: Fast Calculation of the Likelihood of a Stochastic Survival
         Model
-Version: 0.4.12
-Date: 2015-04-02
-Author: Carlo Albert <carlo.albert@eawag.ch> & Sören Vogel <soeren.vogel@posteo.ch>
+Version: 0.4.14
+Date: 2015-04-03
+Author: Carlo Albert <carlo.albert@eawag.ch> and Sören Vogel <soeren.vogel@posteo.ch>
 Maintainer: Sören Vogel <soeren.vogel@posteo.ch>
 Description: Given exposure and survival time series as well as parameter values, GUTS allows for the calculation of the survival probabilities as well as the logarithm of the corresponding likelihood.
 License: GPL-3
@@ -17,8 +17,8 @@ LazyData: no
 Encoding: UTF-8
 Repository: CRAN
 Repository/R-Forge/Project: guts
-Repository/R-Forge/Revision: 20
-Repository/R-Forge/DateTimeStamp: 2015-04-02 09:29:40
-Date/Publication: 2015-04-02 17:51:47
-Packaged: 2015-04-02 09:45:19 UTC; rforge
+Repository/R-Forge/Revision: 21
+Repository/R-Forge/DateTimeStamp: 2015-04-03 13:45:01
+Date/Publication: 2015-04-03 23:58:37
+Packaged: 2015-04-03 14:05:42 UTC; rforge
 NeedsCompilation: yes
