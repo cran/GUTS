@@ -1,9 +1,10 @@
-4a700eaa6ed8ada6be3e73d385fe4e38 *DESCRIPTION
-fbad3aba917695ba6b1e5ac489af23f3 *NAMESPACE
+e8c3685c1eafcd5ce0b6ce8b5187dc5b *DESCRIPTION
+759c172777bfa946f62e5665dce9dfcf *NAMESPACE
 4de90dcea1e5e5bb2bdebb0072541cc0 *R/GUTS.R
 de9d74cbd5b84e90044e43047549b0ac *data/diazinon.rda
-abcd42124efe4e1bc9601720b58dd7f0 *man/GUTS-package.Rd
-9927e09e7f0532340ed174e150b65935 *man/GUTS.Rd
+52dd68c336d518ff95ecd06b50e35489 *man/GUTS-package.Rd
+9e7ba8a50db13971cf46c8e8a402f09d *man/GUTS.Rd
 d2f8ba8644b898521d21f0b6330d97b2 *man/diazinon.Rd
 1efaf842e47d97519aeee5d212e9ed14 *src/RcppExports.cpp
-cffee6f53c54c076f94a1e4a2763ea15 *src/guts_engine.cpp
+5b7fedc7c1b6dbbccd5fb578592c7575 *src/guts_engine.cpp
+b198bb514388ce144ca06e27efe81133 *src/init.c
