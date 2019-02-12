@@ -8,10 +8,10 @@
 */
 
 /* .Call calls */
-extern SEXP GUTS_guts_engine(SEXP, SEXP);
+extern SEXP _GUTS_guts_engine(SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
-    {"GUTS_guts_engine", (DL_FUNC) &GUTS_guts_engine, 2},
+    {"_GUTS_guts_engine", (DL_FUNC) &_GUTS_guts_engine, 3},
     {NULL, NULL, 0}
 };
 
@@ -20,4 +20,3 @@ void R_init_GUTS(DllInfo *dll)
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
-
