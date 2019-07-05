@@ -1,7 +1,7 @@
 /**
  * GUTS: Fast Calculation of the Likelihood of a Stochastic Survival Model.
  * Function guts_engine(GUTS-Object, Parameters).
- * soeren.vogel@posteo.ch, carlo.albert@eawag.ch, alexander singer@rifcon.de, oliver.jakoby@rifcon.de
+ * soeren.vogel@posteo.ch, carlo.albert@eawag.ch, alexander singer@rifcon.de, oliver.jakoby@rifcon.de, dirk.nickisch@rifcon.de
  * License GPL-2
  * 2017-10-09 (last changes 2019-01-29)
  */
@@ -127,7 +127,9 @@ void guts_engine( Rcpp::List gobj, Rcpp::NumericVector par, Rcpp::Nullable<Rcpp:
       Rcpp::warning( "Loglogistic distribution undefined for scale parameter <= 0. \nPlease check parameter values." );
       gobj["D"]   = D_NA;
       gobj["S"]   = S_NA;
-      gobj["LL"]  =  -std::numeric_limits<double>::infinity();
+      //gobj["LL"]  =  -std::numeric_limits<double>::infinity();
+      gobj["SPPE"]  =  std::numeric_limits<double>::infinity();
+      gobj["squares"]  =  std::numeric_limits<double>::infinity();
       return;
     }
     if (wpar[4] <= 0) {
@@ -135,6 +137,7 @@ void guts_engine( Rcpp::List gobj, Rcpp::NumericVector par, Rcpp::Nullable<Rcpp:
       gobj["D"]   = D_NA;
       gobj["S"]   = S_NA;
       gobj["LL"]  =  -std::numeric_limits<double>::infinity();
+      gobj["squares"]  =  std::numeric_limits<double>::infinity();
       return;
     } else {
       /* if shape (wpar4]) <=1: the loglogistic mode = 0 and mean undefined
@@ -320,9 +323,28 @@ void guts_engine( Rcpp::List gobj, Rcpp::NumericVector par, Rcpp::Nullable<Rcpp:
     }
   } // End of for ( unsigned int i=0; i < diffy.size(); ++i ).
   
+
+  //Calculate SPPE
+  double SPPE = 0;
+  int tend = 0;
+  tend = diffy.size()-1;
+  SPPE =(y.at(tend)-y.at(0)*S.at(tend))*100 / y.at(0);
+
+  // End of SPPE
+
+  /*
+  * Calculate Sum of squares
+  */
+  double squares = 0.00;
+  for ( unsigned int i=0; i < diffy.size(); ++i ) {
+    squares += (y.at(i)-y.at(0)*S.at(i))*(y.at(i)-y.at(0)*S.at(i));
+  }
+
   /*
    * Update object fields.
    */
+  gobj["squares"] = squares;
+  gobj["SPPE"] = SPPE;
   gobj["LL"]  = LL;
   gobj["zt"]   = z;
   

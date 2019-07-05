@@ -1,5 +1,5 @@
-\encoding{UTF-8}
-% Last updated 2019-01-29
+﻿\encoding{UTF-8}
+% Last updated 2019-07-04
 
 \name{GUTS}
 
@@ -9,6 +9,8 @@
 \alias{guts_calc_loglikelihood}
 \alias{guts_calc_survivalprobs}
 \alias{guts_report_damage}
+\alias{guts_report_sppe}
+\alias{guts_report_squares}
 
 
 
@@ -30,6 +32,10 @@ guts_calc_loglikelihood(gobj, par, external_dist = NULL)
 guts_calc_survivalprobs(gobj, par, external_dist = NULL)
 
 guts_report_damage(gobj)
+
+guts_report_sppe(gobj)
+
+guts_report_squares(gobj)
 }
 
 
@@ -66,11 +72,15 @@ guts_report_damage(gobj)
 \subsection{Functions}{%
 Use \code{guts_setup} to define (or alter) a GUTS object. Various checks are applied to the data. On success, a GUTS object will be created.
 
-Use \code{guts_calc_loglikelihood} to calculate the survival probabilities and the corresponding loglikelihood for a given set of parameters.  The function is very fast and can be used in routines for parameter estimation.  The function returns the loglikelihood, however it also updates the fields \code{par}, \code{S} and \code{LL} of the object.
+Use \code{guts_calc_loglikelihood} to calculate the survival probabilities and the corresponding loglikelihood for a given set of parameters.  The function is very fast and can be used in routines for parameter estimation.  The function returns the loglikelihood, however it also updates the fields \code{par}, \code{S}, \code{D}, \code{SPPE}, \code{squares}, \code{zt} and \code{LL} of the GUTS-object.
 
-\code{guts_calc_survivalprobs} is a convenience wrapper that can be used for predictions; it returns the survival probabilities.
+\code{guts_calc_survivalprobs} is a convenience wrapper that can be used for predictions; it returns the survival probabilities, however it also updates the fields \code{par}, \code{S}, \code{D}, \code{SPPE}, \code{squares}, \code{zt} and \code{LL} of the GUTS-object.
 
 \code{guts_report_damage} returns a data.frame with time grid points and the damage for each of these. The function reports the damage that was calculated in the previous call to \code{guts_calc_loglikelihood} or \code{guts_calc_survivalprobs}.
+
+\code{guts_report_squares} returns the sum of squares. The function reports the sum of squares that was calculated in the previous call to \code{guts_calc_loglikelihood} or \code{guts_calc_survivalprobs}.
+
+\code{guts_report_sppe} returns the survival-probability prediction error (SPPE). The function reports the SPPE that was calculated in the previous call to \code{guts_calc_loglikelihood} or \code{guts_calc_survivalprobs}.
 }
 
 
@@ -114,7 +124,7 @@ The number of parameters is checked according to \code{dist} and \code{model}.  
 
 
 \subsection{Field and Attribute Access}{%
-Fields and attributes of an object of class \dQuote{GUTS} are read-only.  To prevent accidental change of fields or attributes, replacement functions were rewritten throwing an error when used.  Always use function \code{guts_setup} to create objects or modify fields on existing objects.  However, \code{guts_calc_loglikelihood} and \code{guts_calc_survivalprobs} update an object's fields \code{par} (parameters), \code{D} (damage), \code{S} (survival probabilities) and \code{LL} (the loglikelihood).
+Fields and attributes of an object of class \dQuote{GUTS} are read-only.  To prevent accidental change of fields or attributes, replacement functions were rewritten throwing an error when used.  Always use function \code{guts_setup} to create objects or modify fields on existing objects. Functions \code{guts_calc_loglikelihood} and \code{guts_calc_survivalprobs} update an object's fields \code{par} (parameters), \code{D} (damage), \code{squares} (sum of squares), \code{SPPE} (survival-probability prediction error), \code{S} (survival probabilities) and \code{LL} (the loglikelihood).
 } % End of \subsection{Field and Attribute Access}.
 } % End of \details
 
@@ -134,6 +144,8 @@ Fields and attributes of an object of class \dQuote{GUTS} are read-only.  To pre
 \item{par}{Parameters.}
 \item{S}{Vector of survivor probabilities.}
 \item{D}{Vector of internal damage for each of the \code{M} time grid points.}
+\item{squares}{Sum of squares}
+\item{SPPE}{Survival-probability prediction error.}
 \item{LL}{The loglikelihood.}
 
 %The object has the following attributes (for internal use):
@@ -148,6 +160,10 @@ Fields and attributes of an object of class \dQuote{GUTS} are read-only.  To pre
 \code{guts_calc_survivalprobs} returns the survival probabilities.
 
 \code{guts_report_damage} returns the damage.
+
+\code{guts_report_squares} returns the sum of squares.
+
+\code{guts_report_sppe} returns the survival-probability prediction error (SPPE).
 
 } % End of \value.
 
@@ -171,12 +187,12 @@ EFSA PPR Panel (EFSA Panel on Plant Protection Products and their Residues), Ock
 }
 
 
-\author{Carlo Albert \email{carlo.albert@eawag.ch}, Sören Vogel \email{soeren.vogel@posteo.ch}, Oliver Jakoby \email{oliver.jakoby@rifcon.de} and Alexander Singer \email{alexander.singer@rifcon.de}
+\author{Carlo Albert \email{carlo.albert@eawag.ch}, Sören Vogel \email{soeren.vogel@posteo.ch}, Oliver Jakoby \email{oliver.jakoby@rifcon.de}, Alexander Singer \email{alexander.singer@rifcon.de} and Dirk Nickisch \email{dirk.nickisch@rifcon.de}
 
 Maintainer: Oliver Jakoby \email{oliver.jakoby@rifcon.de}}
 
 
-\seealso{\code{\link{diazinon}}, \code{\link{GUTS-package}}, vignettes \url{../doc/ringTest.html} and \url{../doc/ringTest.html} for examples on how to calibrate and project GUTS-models.}
+\seealso{\code{\link{diazinon}}, \code{\link{GUTS-package}} and the package vignettes for examples on how to calibrate and project GUTS-models.}
 
 
 
