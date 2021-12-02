@@ -1,7 +1,7 @@
-## ----setup, echo=FALSE, results='hide', message=TRUE---------------------
+## ----setup, echo=FALSE, results='hide', message=TRUE--------------------------
 rm(list = ls())
 
-do.calc <- FALSE # if TRUE, all calculations are conducted. if FALSE, calculations are omitted and the vignette output is built from pre-caculated data.
+do.calc <- FALSE # if TRUE, all calculations are conducted. if FALSE, calculations are omitted and the vignette output is built from pre-calculated data.
 do.save <- FALSE # if TRUE, calculation parts will be saved to disk. This works only correctly, if building from source. Therefore, if you are not building the vignette from source: do.save <- FALSE
 
 if (do.calc == FALSE) message("For performance reasons, this vignette builds from pre-calculated data.\n\n To run all calculations, set 'do.calc <- TRUE' in the vignette's first code chunk. \n Building the vignette will take a while.")
@@ -17,18 +17,18 @@ knitr::opts_chunk$set(
 
 op <- par(no.readonly = TRUE)
 
-## ----load-guts-----------------------------------------------------------
+## ----load-guts----------------------------------------------------------------
 library(GUTS)
 packageVersion("GUTS")
 
-## ----prepare-xlsx-table-local, include = FALSE, eval = TRUE--------------
+## ----prepare-xlsx-table-local, include = FALSE, eval = TRUE-------------------
 JA_data_file_name <- system.file("extdata", "Data_for_GUTS_software_ring_test_A_v05.xlsx", package = "GUTS", mustWork = TRUE)
 
-## ----setup-A-par---------------------------------------------------------
+## ----setup-A-par--------------------------------------------------------------
 par_A <- data.frame(symbols = c("hb", "ke", "kk", "mn", "beta"), JAsymbols = c("hb", "kd", "kk", "mw", "beta"), SD = c(0.01, 0.8, 0.6, 3, NA), IT = c(0.02, 0.8, NA, 5, 5.3))
 par_A
 
-## ----A-SD-read-all-comments, message = FALSE-----------------------------
+## ----A-SD-read-all-comments, message = FALSE----------------------------------
 library(xlsx)
 read.xlsx(
   file = paste0(JA_data_file_name),
@@ -38,7 +38,7 @@ read.xlsx(
   header = TRUE
   )
 
-## ----A-SD-read-----------------------------------------------------------
+## ----A-SD-read----------------------------------------------------------------
 data_A_SD <- read.xlsx(
   file = paste0(JA_data_file_name),
   sheetName = "Data A",
@@ -68,7 +68,7 @@ day_A_SD <-
 names(data_A_SD) <- paste0("c", con_A_SD)
 rownames(data_A_SD) <- paste0("d", day_A_SD)
 
-## ----setup-GUTS-OBJ-A_SD-------------------------------------------------
+## ----setup-GUTS-OBJ-A_SD------------------------------------------------------
 GUTS_A_SD <- list( 
   C0 = guts_setup(
     C = rep_len(con_A_SD[1], length(day_A_SD)), Ct = day_A_SD,
@@ -102,10 +102,10 @@ GUTS_A_SD <- list(
     )
 )
 
-## ----load optimization routines------------------------------------------
+## ----load optimization routines-----------------------------------------------
 library('adaptMCMC') # Function `MCMC()`, Monte Carlo Markov Chain.
 
-## ----define-log-posterior------------------------------------------------
+## ----define-log-posterior-----------------------------------------------------
 logposterior <- function( pars, guts_objects, 
   isOutOfBoundsFun = function(p) any( is.na(p), is.infinite(p) )  ) {
 	if ( isOutOfBoundsFun(pars) ) return(-Inf)
@@ -114,10 +114,10 @@ logposterior <- function( pars, guts_objects,
   )
 }
 
-## ----define out of bounds-fun-SD-----------------------------------------
+## ----define out of bounds-fun-SD----------------------------------------------
 is_out_of_bounds_fun_SD <- function(p) any( is.na(p), is.infinite(p), p < 0, p["kk"] > 30 )
 
-## ----run-MCMC-SD, echo = TRUE, results = 'hide', eval = do.calc----------
+## ----run-MCMC-SD, echo = TRUE, results = 'hide', eval = do.calc---------------
 #  pars_start_SD <- rep_len (0.5, 4)
 #  names(pars_start_SD) <- par_A$JAsymbols[-which(is.na(par_A$SD))]
 #  
@@ -139,7 +139,7 @@ load(system.file("extdata", "vignetteGUTS-ringTest-SD-MCMCresults.Rdata",
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----display-MCMC-SD-----------------------------------------------------
+## ----display-MCMC-SD----------------------------------------------------------
 
 if (all(is.finite(mcmc_result_SD$log.p))) {
   par( mfrow = c(dim(mcmc_result_SD$samples)[2] + 1, 2) , mar = c(5,4,1,0.5))
@@ -151,7 +151,7 @@ if (all(is.finite(mcmc_result_SD$log.p))) {
   par(op)
 }
 
-## ----evalMCMC-fun, echo = TRUE, results = 'hide'-------------------------
+## ----evalMCMC-fun, echo = TRUE, results = 'hide'------------------------------
 eval_MCMC <- function(sampMCMC, expectedVal = NULL, plot = TRUE) {
   bestFit <- sampMCMC$samples[which.max(sampMCMC$log.p),]
   qu <- apply(sampMCMC$samples, 2, quantile, probs = c(0.025, 0.5, 0.975))
@@ -172,10 +172,10 @@ eval_MCMC <- function(sampMCMC, expectedVal = NULL, plot = TRUE) {
   return(res)
 }
 
-## ----evaluate-MCMC-SD----------------------------------------------------
+## ----evaluate-MCMC-SD---------------------------------------------------------
 eval_MCMC(mcmc_result_SD, expectedVal = par_A$SD[-which(is.na(par_A$SD))])
 
-## ----A-IT-read-----------------------------------------------------------
+## ----A-IT-read----------------------------------------------------------------
 data_A_IT <- read.xlsx(
   file = paste0(JA_data_file_name),
   sheetName = "Data A",
@@ -205,7 +205,7 @@ day_A_IT <-
 names(data_A_IT) <- paste0("c", con_A_IT)
 rownames(data_A_IT) <- paste0("d", day_A_IT)
 
-## ----setup-GUTS-OBJ-A-IT-------------------------------------------------
+## ----setup-GUTS-OBJ-A-IT------------------------------------------------------
 GUTS_A_IT <- lapply(seq(length(con_A_IT)), 
   function(i, dat, days, con) guts_setup(
     C = rep_len(con[i], length(days)), Ct = days,
@@ -215,10 +215,10 @@ GUTS_A_IT <- lapply(seq(length(con_A_IT)),
 ) 
 names(GUTS_A_IT) <- paste0("c", con_A_IT)
 
-## ----define out of bounds-fun-IT-----------------------------------------
+## ----define out of bounds-fun-IT----------------------------------------------
 is_out_of_bounds_fun_IT <- function(p) any( is.na(p), is.infinite(p), p < 0, p[4] <= 1, exp(8/p[4]) * p[3] > 1e200)
 
-## ----run-MCMC-IT, echo = TRUE, results = 'hide', eval = do.calc----------
+## ----run-MCMC-IT, echo = TRUE, results = 'hide', eval = do.calc---------------
 #  pars_start_IT <- rep_len(0.5, 4)
 #  names(pars_start_IT) <- par_A$JAsymbols[-which(is.na(par_A$IT))]
 #  mcmc_result_IT <- MCMC(p = logposterior,
@@ -238,7 +238,7 @@ load(system.file("extdata", "vignetteGUTS-ringTest-IT-MCMCresults.Rdata",
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----display-MCMC-IT-----------------------------------------------------
+## ----display-MCMC-IT----------------------------------------------------------
 if (all(is.finite(mcmc_result_IT$log.p))) {
   par( mfrow = c(dim(mcmc_result_IT$samples)[2] + 1, 2) , mar = c(5,4,1,0.5))
   plot(as.mcmc(cbind(mcmc_result_IT$samples, LL = mcmc_result_IT$log.p)), auto.layout = FALSE)
@@ -249,32 +249,32 @@ if (all(is.finite(mcmc_result_IT$log.p))) {
   par(op)
 }
 
-## ----evaluate-MCMC-IT----------------------------------------------------
+## ----evaluate-MCMC-IT---------------------------------------------------------
 eval_MCMC(mcmc_result_IT, expectedVal = par_A$IT[-which(is.na(par_A$IT))])
 
-## ----forecast-setup-GUTS-object------------------------------------------
-conc <- seq(0, 16)
+## ----forecast-setup-GUTS-object-----------------------------------------------
+conc <- seq(0, 16, by = 2)
 guts_obj_forecast <- lapply(conc,
   function(concentration) guts_setup(
-    C = rep(concentration, 10),
-    Ct = seq(0,9),
-    y = c(100, rep(0,9)),
-    yt = seq(0,9),
+    C = rep(concentration, 7),
+    Ct = seq(0,12, by = 2),
+    y = c(100, rep(0,6)),
+    yt = seq(0,12, by = 2),
     model = "IT", dist = "loglogistic", N = 1000
   )
 )
 
-## ----forecast-paras------------------------------------------------------
+## ----forecast-paras-----------------------------------------------------------
 mcmc_forecasts_paras <- mcmc_result_IT$samples
 mcmc_forecasts_paras[,1] <- 0
 
-## ----forecast, echo = TRUE, results = 'hide', eval = do.calc-------------
+## ----forecast, echo = TRUE, results = 'hide', eval = do.calc------------------
 #  forec <- lapply(guts_obj_forecast,
 #    function(gobj, mcmc_res)
 #      rbind(
 #        rep(gobj$C[1], dim(mcmc_forecasts_paras)[1]),
 #        apply(mcmc_res, 1,
-#          function(par) guts_calc_survivalprobs(gobj = gobj, par, external_dist = NULL)
+#          function(pars) guts_calc_survivalprobs(gobj = gobj, pars, external_dist = NULL)
 #        )
 #      ),
 #    mcmc_res = mcmc_forecasts_paras
@@ -287,25 +287,23 @@ mcmc_forecasts_paras[,1] <- 0
 ## ----save-forecast, echo = FALSE, results = 'hide', eval = do.calc & do.save----
 #  save(forec, file = file.path("..", "inst", "extdata", "vignetteGUTS-ringTest-forecast.Rdata"))
 
-## ----load-forecast, echo = FALSE, results = 'hide', eval = !do.calc------
+## ----load-forecast, echo = FALSE, results = 'hide', eval = !do.calc-----------
 load(system.file("extdata", "vignetteGUTS-ringTest-forecast.Rdata", 
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----plot-forecast-------------------------------------------------------
-par(mfrow = c(3,3), mar = c(5,4,3, 0.5))
-invisible(
-  sapply(seq(9),
-    function(day)
-      plot(as.factor(forec$conc), forec[,paste0("day",day)], 
-        ylim = c(0,1),
-        xlab = "concentration (micromol/l)", ylab = "probability of survival", 
-        main = paste("day",day))
-  )
+## ----plot-forecast, results='hide'--------------------------------------------
+par(mfrow = c(2,3), mar = c(5,4,3, 0.5))
+sapply(tail(names(forec), -2),
+			 function(day)
+			 	plot(as.factor(forec$conc), forec[, day], 
+			 			 ylim = c(0,1),
+			 			 xlab = "concentration (micromol/l)", ylab = "probability of survival", 
+			 			 main = day)
 )
 par(op)
 
-## ----estimate-4d-LC50, echo = TRUE, results = 'hide', eval = do.calc-----
+## ----estimate-4d-LC50, echo = TRUE, results = 'hide', eval = do.calc----------
 #  library("drc")
 #  logLC50s <- sapply(seq_len(dim(mcmc_forecasts_paras)[1]),
 #    function(indParaset, forDat, concentrations) {
@@ -320,14 +318,14 @@ par(op)
 #    concentrations = conc
 #  )
 
-## ----save-LC50, echo = FALSE, results = 'hide', eval = do.calc & do.save----
+## ----save-LC50, echo = FALSE, results = 'hide', eval = do.calc & do.save------
 #  save(logLC50s, file = file.path("..", "inst", "extdata", "vignetteGUTS-ringTest-logLC50.Rdata"))
 
-## ----load-LC50, echo = FALSE, results = 'hide', eval = !do.calc----------
+## ----load-LC50, echo = FALSE, results = 'hide', eval = !do.calc---------------
 load(system.file("extdata", "vignetteGUTS-ringTest-logLC50.Rdata", 
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----calc-LC50-stats-----------------------------------------------------
+## ----calc-LC50-stats----------------------------------------------------------
 LC50 <- quantile(exp(logLC50s), c(0.025, 0.5, 0.975))
 

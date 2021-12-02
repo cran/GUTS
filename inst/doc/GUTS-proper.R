@@ -1,7 +1,7 @@
-## ----setup, echo=FALSE, results='hide', message=TRUE---------------------
+## ----setup, echo=FALSE, results='hide', message=TRUE--------------------------
 rm(list = ls())
 
-do.calc <- FALSE # if TRUE, all calculations are conducted. if FALSE, calculations are omitted and the vignette output is built from pre-caculated data.
+do.calc <- FALSE # if TRUE, all calculations are conducted. if FALSE, calculations are omitted and the vignette output is built from pre-calculated data.
 do.save <- FALSE # if TRUE, calculation parts will be saved to disk. This works only correctly, if building from source. Therefore, if you are not building the vignette from source: do.save <- FALSE
 
 if (do.calc == FALSE) message("For performance reasons, this vignette builds from pre-calculated data.\n\n To run all calculations, set 'do.calc <- TRUE' in the vignette's first code chunk. \n Building the vignette will take a while.")
@@ -18,15 +18,15 @@ knitr::opts_chunk$set(
 
 op <- par(no.readonly = TRUE)
 
-## ----load-guts-----------------------------------------------------------
+## ----load-guts----------------------------------------------------------------
 library(GUTS)
 packageVersion("GUTS")
 
-## ----load diazinon data--------------------------------------------------
+## ----load diazinon data-------------------------------------------------------
 data(diazinon)
 str(diazinon)
 
-## ----setup-GUTS-OBJ-A_SD-------------------------------------------------
+## ----setup-GUTS-OBJ-A_SD------------------------------------------------------
 guts_object <- list( 
   C1 = guts_setup(
     C = diazinon[["C1"]], Ct = diazinon[["Ct1"]],
@@ -45,17 +45,17 @@ guts_object <- list(
     )
 )
 
-## ----load optimization routines, echo = TRUE, results = 'hide'-----------
+## ----load optimization routines, echo = TRUE, results = 'hide'----------------
 library('adaptMCMC') # Function `MCMC()`, Monte Carlo Markov Chain.
 
-## ----define-log-posterior------------------------------------------------
+## ----define-log-posterior-----------------------------------------------------
 logposterior <- function( pars, guts_objects, isOutOfBoundsFun) {
 	if ( isOutOfBoundsFun(pars) ) return(-Inf)
   return(
 	  sum(sapply( guts_objects, function(obj) guts_calc_loglikelihood(obj, pars) )))
 }
 
-## ----define-out-of-bounds-fun-Proper-------------------------------------
+## ----define-out-of-bounds-fun-Proper------------------------------------------
 is_out_of_bounds_fun_Proper <- function(p) any( 
   is.na(p), 
   is.infinite(p), 
@@ -65,7 +65,7 @@ is_out_of_bounds_fun_Proper <- function(p) any(
   exp(8/p[5]) * p[4] > 1e200
 )
 
-## ----guess-initial-values-Proper, echo = TRUE, eval = do.calc------------
+## ----guess-initial-values-Proper, echo = TRUE, eval = do.calc-----------------
 #  
 #  pars_start_Proper <- c(0.05, 0.5, 1, 10, 5)
 #  names(pars_start_Proper) <- c("hb", "ke", "kk", "mn", "beta")
@@ -87,7 +87,7 @@ load(system.file("extdata", "vignetteGUTS-Proper-initialValues.Rdata",
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----show-initial-values-Proper------------------------------------------
+## ----show-initial-values-Proper-----------------------------------------------
 if (optim_result_Proper$convergence != 0) {
   warning("Optimizing initial values has not converged. Using non-optimized initial values.")
   optim_result_Proper$par <- pars_start_Proper
@@ -95,7 +95,7 @@ if (optim_result_Proper$convergence != 0) {
 
 print(optim_result_Proper)
 
-## ----run-MCMC-Proper, echo = TRUE, results = 'hide', eval = do.calc------
+## ----run-MCMC-Proper, echo = TRUE, results = 'hide', eval = do.calc-----------
 #  mcmc_pars_Proper <- optim_result_Proper$par
 #  mcmc_sigma_Proper <- diag( (mcmc_pars_Proper/10)^2 + .Machine$double.eps )
 #  mcmc_result_Proper <- MCMC(p = logposterior,
@@ -115,7 +115,7 @@ load(system.file("extdata", "vignetteGUTS-Proper-MCMCresults.Rdata",
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----display-MCMC-Proper-------------------------------------------------
+## ----display-MCMC-Proper------------------------------------------------------
 
 if (all(is.finite(mcmc_result_Proper$log.p))) {
   par( mfrow = c(dim(mcmc_result_Proper$samples)[2] + 1, 2) , mar = c(5,4,1,0.5))
@@ -135,7 +135,7 @@ text(0.5, 0.5, txt, cex = max(0.1, 4 * abs(cor(x, y)) + 1))
 }
 pairs(mcmc_result_Proper$samples, upper.panel=panel.cor)
 
-## ----evalMCMC-fun, echo = TRUE, results = 'hide'-------------------------
+## ----evalMCMC-fun, echo = TRUE, results = 'hide'------------------------------
 eval_MCMC <- function(sampMCMC, plot = TRUE) {
   bestFit <- sampMCMC$samples[which.max(sampMCMC$log.p),]
   qu <- apply(sampMCMC$samples, 2, quantile, probs = c(0.025, 0.5, 0.975))
@@ -150,10 +150,10 @@ eval_MCMC <- function(sampMCMC, plot = TRUE) {
   return(res)
 }
 
-## ----evaluate-MCMC-SD-dat-Proper-----------------------------------------
+## ----evaluate-MCMC-SD-dat-Proper----------------------------------------------
 eval_MCMC(mcmc_result_Proper)
 
-## ----forecast-setup-GUTS-object------------------------------------------
+## ----forecast-setup-GUTS-object-----------------------------------------------
 guts_obj_forecast <-
   guts_setup(
     C = c(60, 40, 6, 0, 0, 60, 40, 6, 0, 0, 60, 40, 6, 0),
@@ -163,7 +163,7 @@ guts_obj_forecast <-
     model = "Proper", dist = "loglogistic", N = 1000, M = 10000
   )
 
-## ----forecast, echo = TRUE, results = 'hide', eval = do.calc-------------
+## ----forecast, echo = TRUE, results = 'hide', eval = do.calc------------------
 #  mcmc_forecasts_paras <- mcmc_result_Proper$samples
 #  
 #  forec <- apply(mcmc_forecasts_paras, 1,
@@ -198,7 +198,7 @@ load(system.file("extdata", "vignetteGUTS-Proper-forecast.Rdata",
   package = "GUTS", mustWork = TRUE)
 )
 
-## ----plot-forecast-------------------------------------------------------
+## ----plot-forecast------------------------------------------------------------
 par(mfrow = c(3,1), mar = c(0.5,4,0.5,0.5), oma = c(2.5,0,0,0), las = 1, cex = 1)
 plot(guts_obj_forecast$Ct, guts_obj_forecast$C, 
   xlim = range(guts_obj_forecast$yt), 
