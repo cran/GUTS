@@ -2,7 +2,7 @@ Package: GUTS
 Type: Package
 Title: Fast Calculation of the Likelihood of a Stochastic Survival
         Model
-Version: 1.2.4
+Version: 1.2.5
 Date: 2023-09-26
 Author: Carlo Albert <carlo.albert@eawag.ch>, Sören Vogel <soeren.vogel@posteo.ch>, Oliver Jakoby <oliver.jakoby@rifcon.de>, Alexander Singer <alexander.singer@rifcon.de> and Dirk Nickisch <dirk.nickisch@rifcon.de>
 Maintainer: Oliver Jakoby <oliver.jakoby@rifcon.de>
@@ -13,12 +13,12 @@ LinkingTo: Rcpp
 LazyLoad: yes
 LazyData: no
 Encoding: UTF-8
-Suggests: knitr, rmarkdown, adaptMCMC, xlsx, drc, testthat
+Suggests: knitr, rmarkdown, adaptMCMC, xlsx, drc, testthat, withr
 VignetteBuilder: knitr
 Repository: CRAN
 Repository/R-Forge/Project: guts
-Repository/R-Forge/Revision: 88
-Repository/R-Forge/DateTimeStamp: 2023-10-12 13:37:10
-Date/Publication: 2023-10-12 18:40:02 UTC
+Repository/R-Forge/Revision: 90
+Repository/R-Forge/DateTimeStamp: 2023-10-19 21:25:56
+Date/Publication: 2023-10-20 08:10:02 UTC
 NeedsCompilation: yes
-Packaged: 2023-10-12 13:45:43 UTC; rforge
+Packaged: 2023-10-19 21:45:43 UTC; rforge
